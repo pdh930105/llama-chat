@@ -1,0 +1,14 @@
+# 실행 중 생성되는 파일
+logs/
+*.pid
+
+# 설치/빌드 산출물
+llama.cpp/
+models/
+bin/
+
+# OS
+.DS_Store
+
+# 이 저장소와 무관한 로컬 작업물
+noddy/
