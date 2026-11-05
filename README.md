@@ -42,10 +42,11 @@
 | 항목 | 내용 |
 |---|---|
 | 검증 CPU | Intel Xeon Silver 4210R (10코어) |
-| 메모리 사용 | 약 4.3GB |
+| 메모리 사용 | 약 4.9GB (이미지 입력 끄면 약 4.3GB) |
 | 답변 속도 | 약 **5.5 tok/s** (1초에 5~6토큰, 한국어 기준 대략 3~5단어) |
 | 모델 | Qwen3.5-4B Q4_K_M (약 2.7GB) |
 | 한국어 | 지원 (일상 대화, 번역, 요약 등) |
+| 이미지 입력 | 지원 (기본 on, `ENABLE_VISION=0`으로 끔) |
 
 > 위 수치는 이 저장소를 만든 PC 기준입니다. **CPU 성능에 따라 속도와 메모리 사용량은 달라집니다.**
 > 답변이 느리게 느껴지는 것은 CPU만 사용하기 때문이며 정상입니다.
@@ -130,7 +131,7 @@ http://127.0.0.1:8080
 ## 3. 처음부터 설치하는 방법
 
 > **이미 이 저장소를 내려받았다면 3-2로 건너뛰세요.**
-> 인터넷 연결이 필요하고, 모델 다운로드에 약 2.7GB를 받습니다.
+> 인터넷 연결이 필요하고, 모델과 이미지 부품을 합쳐 약 3.4GB를 받습니다.
 
 ### 3-1. 저장소 내려받기 (git)
 
@@ -167,7 +168,7 @@ cd llama-chat
 ./download-model.sh
 ```
 
-- AI 모델(약 2.7GB)을 내려받습니다.
+- AI 모델(약 2.7GB)과 이미지 입력용 mmproj(약 0.67GB)를 내려받습니다.
 - 저장 위치: `~/.cache/huggingface/hub`
 - 다운로드가 끝나면 `다운로드 완료` 메시지가 나옵니다.
 
@@ -215,7 +216,7 @@ chmod +x *.sh
 
 - **대화 기록은 서버를 끄면 사라집니다.** (파일로 저장되지 않습니다)
 - 새 대화를 시작하려면 화면의 **New Chat / 새 대화** 버튼을 사용하세요.
-- 이미지 입력은 꺼 두었습니다. (CPU에서 느리고 메모리를 많이 사용합니다)
+- **이미지 입력이 기본으로 켜져 있습니다.** Qwen3.5-4B는 이미지도 이해할 수 있으며, Web UI 채팅창에서 이미지를 첨부할 수 있습니다. CPU 속도와 메모리를 아끼려면 [6-5. 이미지 입력(비전) 끄기](#6-5-이미지-입력비전-끄기)를 참고하세요.
 - 답변 도중 멈추고 싶으면 화면의 **Stop / 중지** 버튼을 누르세요.
 
 ---
@@ -278,6 +279,7 @@ vim이 처음이라면 아래 순서만 기억하세요.
 | `CTX_SIZE` | `4096` | AI가 한 번에 기억하는 대화 길이 |
 | `THREADS` | 10 | 답변 생성에 쓸 CPU 코어 수 |
 | `REASONING` | `off` | 생각 과정 표시 여부 (`off`가 빠름) |
+| `ENABLE_VISION` | `1` | 이미지 입력 사용 여부 (`1`=켬, `0`=끔) |
 
 예를 들어 포트를 9000으로 바꾸면 브라우저 주소도 `http://127.0.0.1:9000`이 됩니다.
 
@@ -324,6 +326,38 @@ API_KEY=my-secret
 
 - 접속 주소: `http://<이 컴퓨터의 IP>:8080`
 - **API_KEY 없이 외부에 공개하지 마세요.**
+
+### 6-5. 이미지 입력(비전) 끄기
+
+Qwen3.5-4B는 **이미지도 이해할 수 있는 모델**이라 기본적으로 이미지 입력이 켜져 있습니다.
+Web UI 채팅창의 이미지 첨부 버튼으로 사진을 넣고 질문할 수 있습니다.
+
+이미지 입력은 mmproj(이미지 처리 부품, 약 672MB)를 사용하므로:
+
+- 메모리를 약 0.7GB 더 사용합니다. (약 4.3GB → 4.9GB)
+- 이미지 1장을 처리하는 데 몇 초가 더 걸립니다.
+  (검증 예: 640×320 이미지 + 짧은 답변 = 약 5.5초)
+
+텍스트 대화만 사용하고 메모리/속도를 아끼고 싶다면 끄면 됩니다:
+
+```bash
+./stop.sh
+ENABLE_VISION=0 ./start.sh
+```
+
+또는 `config.sh`에서 `ENABLE_VISION=0`으로 바꾼 뒤 `./stop.sh` → `./start.sh`.
+
+다시 켜려면:
+
+```bash
+ENABLE_VISION=1 ./download-model.sh   # mmproj 가 없을 때만 (약 672MB)
+ENABLE_VISION=1 ./start.sh
+```
+
+이미 받은 mmproj 파일은 디스크에 남아 있어도 문제없습니다.
+
+> 참고: Qwen3.5-4B는 동영상 입력도 지원하지만, CPU에서는 매우 느리므로
+> 이 문서에서는 이미지 입력만 다룹니다.
 
 ---
 
@@ -450,6 +484,30 @@ res = client.chat.completions.create(
 print(res.choices[0].message.content)
 ```
 
+이미지 입력 예시 (기본 설정처럼 `ENABLE_VISION=1`인 경우):
+
+```python
+import base64
+from openai import OpenAI
+
+with open("photo.jpg", "rb") as f:
+    b64 = base64.b64encode(f.read()).decode()
+
+client = OpenAI(base_url="http://127.0.0.1:8080/v1", api_key="not-needed")
+res = client.chat.completions.create(
+    model="qwen3.5-4b",
+    messages=[{
+        "role": "user",
+        "content": [
+            {"type": "text", "text": "이 사진에 무엇이 있는지 한국어로 설명해 줘."},
+            {"type": "image_url",
+             "image_url": {"url": f"data:image/jpeg;base64,{b64}"}},
+        ],
+    }],
+)
+print(res.choices[0].message.content)
+```
+
 주요 주소:
 
 - `GET /health` — 서버 상태 확인
@@ -487,7 +545,7 @@ llama-chat/
   wsl --install -d Ubuntu
   ```
 - macOS/Linux 모두 **CPU 추론만** 사용합니다. GPU 가속은 설정하지 않았습니다.
-- 첫 실행 시 모델 다운로드(약 2.7GB)와 로딩 때문에 시간이 걸립니다.
+- 첫 실행 시 모델 다운로드(약 3.4GB)와 로딩 때문에 시간이 걸립니다.
 
 ### 실제 설치되는 위치
 | 항목 | 위치 |
@@ -512,7 +570,8 @@ git clone https://github.com/ggml-org/llama.cpp
 cd llama.cpp
 cmake -B build -DGGML_NATIVE=ON -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j"$(nproc 2>/dev/null || sysctl -n hw.ncpu)"
-./build/bin/llama-server -hf unsloth/Qwen3.5-4B-GGUF:Q4_K_M --no-mmproj -c 4096
+./build/bin/llama-server -hf unsloth/Qwen3.5-4B-GGUF:Q4_K_M -c 4096
+# 이미지 입력을 끄려면 끝에 --no-mmproj 를 추가하세요.
 ```
 
 이 경우 `start.sh`가 `llama.cpp/build/bin/llama-server`를 자동으로 찾습니다.

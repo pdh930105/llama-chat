@@ -27,10 +27,16 @@ fi
 log "모델 다운로드: $MODEL"
 log "저장 위치: $HF_CACHE"
 
-# 텍스트 채팅만 사용하므로 멀티모달 프로젝터(mmproj)는 받지 않는다.
-if ! "${SERVE_CMD[0]}" download -hf "$MODEL" --no-mmproj; then
-    warn "--no-mmproj 옵션 없이 다시 시도합니다."
+if [ "${ENABLE_VISION:-0}" = "1" ]; then
+    # 이미지 입력을 사용하려면 멀티모달 프로젝터(mmproj, 약 672MB)도 필요합니다.
+    log "이미지 입력(mmproj)도 함께 다운로드합니다."
     "${SERVE_CMD[0]}" download -hf "$MODEL"
+else
+    # 텍스트 채팅만 사용하므로 멀티모달 프로젝터(mmproj)는 받지 않는다.
+    if ! "${SERVE_CMD[0]}" download -hf "$MODEL" --no-mmproj; then
+        warn "--no-mmproj 옵션 없이 다시 시도합니다."
+        "${SERVE_CMD[0]}" download -hf "$MODEL"
+    fi
 fi
 
 echo

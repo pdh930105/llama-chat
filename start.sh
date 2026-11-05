@@ -43,7 +43,6 @@ mkdir -p "$LOG_DIR"
 # ------------------------------------------------------------
 ARGS=(
     -hf "${MODEL_REPO}:${MODEL_QUANT}"
-    --no-mmproj
     -c "$CTX_SIZE"
     -t "$THREADS"
     -tb "$THREADS_BATCH"
@@ -52,6 +51,15 @@ ARGS=(
     --alias "$MODEL_ALIAS"
     --reasoning "$REASONING"
 )
+
+# 이미지 입력(비전)은 기본적으로 켭니다. CPU에서는 mmproj 로딩/이미지 처리에
+# 시간과 메모리가 더 들기 때문에 ENABLE_VISION=0 으로 끌 수 있습니다.
+if [ "${ENABLE_VISION:-0}" = "1" ]; then
+    VISION_STATE="on"
+else
+    VISION_STATE="off"
+    ARGS+=(--no-mmproj)
+fi
 
 if [ "$PARALLEL" -ge 1 ] 2>/dev/null; then
     ARGS+=(-np "$PARALLEL")
@@ -65,7 +73,7 @@ fi
 #   macOS 에는 setsid 가 없으므로 nohup 만 사용합니다.
 # ------------------------------------------------------------
 log "모델: ${MODEL_REPO}:${MODEL_QUANT}"
-log "스레드: ${THREADS} (배치 ${THREADS_BATCH}) / 컨텍스트: ${CTX_SIZE} / thinking: ${REASONING}"
+log "스레드: ${THREADS} (배치 ${THREADS_BATCH}) / 컨텍스트: ${CTX_SIZE} / thinking: ${REASONING} / 이미지: ${VISION_STATE}"
 log "로그: $LOG_FILE"
 
 : > "$LOG_FILE"

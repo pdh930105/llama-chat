@@ -33,7 +33,11 @@ esac
 [ "$THREADS" -ge 1 ] || fail "THREADS 는 1 이상이어야 합니다."
 [ "$THREADS_BATCH" -ge 1 ] || fail "THREADS_BATCH 는 1 이상이어야 합니다."
 [ "$CTX_SIZE" -ge 256 ] || fail "CTX_SIZE 는 256 이상이어야 합니다."
-echo "  OK  THREADS=$THREADS THREADS_BATCH=$THREADS_BATCH CTX_SIZE=$CTX_SIZE"
+case "$ENABLE_VISION" in
+    0|1) ;;
+    *) fail "ENABLE_VISION 은 0 또는 1 이어야 합니다: $ENABLE_VISION" ;;
+esac
+echo "  OK  THREADS=$THREADS THREADS_BATCH=$THREADS_BATCH CTX_SIZE=$CTX_SIZE ENABLE_VISION=$ENABLE_VISION"
 
 echo "[test] 공통 함수 로드"
 # shellcheck source=lib.sh
